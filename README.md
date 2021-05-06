@@ -403,70 +403,12 @@ predicate (orderdesc: predicate) { ... }
 predicate @filter(...) (orderasc: N) { ... }
 q(func: ..., orderasc: predicate1, orderdesc: predicate2)
 
-### 2.
-# GraphQL
-GraphQL is a data query language developed internally by Facebook in 2012 before being publicly released in 2015. It provides an alternative to RESTful architectures.(wikipedia)
-先说下RESTFul规范。RESTful是web开发当中客户端和服务端数据交互的一种规范，通过定义一系列的约束来实现；满足这种规范的架构设计称为RESTful风格的架构，满足这种规范的web服务被称为RESTful web服务。
-Graph是一种查询语言或语法规范，也是用来描述客户端如何向服务端请求数据。与RESfFul类似，它的特点是客户端可以通过一种语言准确描述所需要的数据，方便用一个请求获取到多个数据源的聚合数据，而不用发送多个RESTful请求。
-# DQL
+***
+Query Variables
 
+func: uid(A,B) or @filter(uid(A,B)) means the union of UIDs for variables A and B
 
-
-
-
-{
-  getPerson(xid: "alice") {
-    xid
-    friends(filter: {
-      and: [
-        { age: { ge: 30 } },
-        { age: { lt: 40 } }
-      ]
-    }) {
-      xid
-      age
-    }
-  }
-}
-
-
-{
-  getPerson(xid: "alice") {
-    xid
-    friends(filter: {
-      age: { ge: 35 }, or: { xid: { eq: "frank" } }
-    }) {
-      xid
-      age
-    }
-  }
-}
-
-
-
-The not logical wrapper cannot contain a list of arguments not: [{ age: ... }, ...]. But it can contain multiple arguments and other logical combinators, e.g.: not: { and: [{ age: ... }, ...] }
-
-
-Sort
-{
-  getPerson(xid: "alice") {
-    id
-    name
-    friends(order: { desc: age, then: { asc: name } }) {
-      id
-      name
-      age
-    }
-  }
-}
-
-
-
-
-
-
-
-
+***
 aggregate
 count - count how many friends Alice has
 xidMin - find the minimum xid value sorted alphabetically
@@ -477,62 +419,60 @@ ageMin - find the minimum age of Alice’s friends
 ageMax - find the maximum age of Alice’s friends
 ageAvg - find the average age of Alice’s friends
 ageSum - sum of all of the ages of Alice’s friends
+***
+Groupby
 
+Syntax:
+@groupby(predicate)
 
-How Dgraph Search Works
-The graphs in Dgraph can be huge, so starting your search from all nodes isn’t always efficient. Dgraph needs a place to start searching, and you choose this by starting your search from a root query function.
+***
+Cascade
 
-The function has(edge_name) returns nodes that have an outgoing edge of the given name.
+With the @cascade directive, nodes that don’t have all predicates specified in the query are removed
 
+nodes has "Fiction" term in name, and must has name, starring(including character and actor) predictives.
+```
 {
-  queryPerson(filter: { has: friends, and: { has: age } }) {
-    id
-    name
-    age
-    friendsAggregate(filter: { has: age }) {
-      count
+  HP(func: allofterms(name@en, "Fiction")) @cascade {
+    name@en
+    starring{
+        performance.character {
+          name@en
+        }
+        performance.actor @filter(allofterms(name@en, "Tim")){
+            name@en
+         }
     }
   }
 }
+```
+***
+normalize
 
-{
-  users: queryPerson {
-    username: xid
-  }
-  peopleWithPets: queryPerson(filter: { has: ownsPets }) {
-    name
-    pet: ownsPets {
-      name
-    }
-  }
-}
+With the @normalize directive, only aliased predicates are returned and the result is flattened to remove nesting.
 
-cascade:
-{
-  getPerson(xid: "alice") @cascade {
-    name
-    age
-    friends {
-      name
-      ownsPets {
-        name
-      }
-    }
-  }
-}
+You can also apply @normalize on nested query blocks. It will work similarly but only flatten the result of the nested query block where @normalize has been applied. 
+***
+@ignorereflex
 
-{
-  getPerson(xid: "alice") {
-    name
-    age
-    friends @cascade {
-      name
-      ownsPets(filter: { xid: { eq: "goldie" } }) {
-        name
-      }
-    }
-  }
-}
+The @ignorereflex directive forces the removal of child nodes that are reachable from themselves as a parent, through any path in the query result
+
+
+
+### 2.
+
+
+
+
+# GraphQL
+GraphQL is a data query language developed internally by Facebook in 2012 before being publicly released in 2015. It provides an alternative to RESTful architectures.(wikipedia)
+先说下RESTFul规范。RESTful是web开发当中客户端和服务端数据交互的一种规范，通过定义一系列的约束来实现；满足这种规范的架构设计称为RESTful风格的架构，满足这种规范的web服务被称为RESTful web服务。
+Graph是一种查询语言或语法规范，也是用来描述客户端如何向服务端请求数据。与RESfFul类似，它的特点是客户端可以通过一种语言准确描述所需要的数据，方便用一个请求获取到多个数据源的聚合数据，而不用发送多个RESTful请求。
+# DQL
+
+## schema
+
+
 # Slash GraphQL
 # Clients
 # Deploy
